@@ -12,23 +12,27 @@ Este projeto implementa uma solução de backup seguro e eficiente utilizando **
 ## 📂 Estrutura do Repositório
 
 - `scripts/`: Scripts de automação para instalação e execução.
-- `docs/`: Documentação detalhada e evidências.
+- `docs/`: Documentação detalhada (AWS e Debian) e evidências.
 - `config/`: Exemplos de arquivos de configuração.
 
-## 🚀 Como Usar
+## 🚀 Como Usar (Zero Touch com Makefile)
+
+Este projeto utiliza um `Makefile` para automatizar todas as etapas.
 
 ### 1. Preparação do Servidor (VM Debian 13)
-No servidor de destino, execute o script de configuração:
+Para instalar e preparar o Debian 13 do zero, siga o [Guia de Configuração Debian](docs/DEBIAN_SETUP.md).
+
+Após a instalação do SO, configure o ambiente com:
 ```bash
-chmod +x scripts/setup_server.sh
-./scripts/setup_server.sh
+make setup
 ```
 
 ### 2. Preparação do Cliente (AWS EC2)
-Na instância EC2, instale o Borg:
+Para configurar a instância na AWS do zero, siga o [Guia de Configuração AWS](docs/AWS_SETUP.md).
+
+Após configurar a instância, instale o Borg com:
 ```bash
-chmod +x scripts/install_borg.sh
-./scripts/install_borg.sh
+make install
 ```
 
 ### 3. Configuração de Acesso SSH
@@ -38,10 +42,14 @@ command="borg serve",restrict ssh-ed25519 AAAA...
 ```
 
 ### 4. Execução do Backup
-Edite as variáveis no arquivo `scripts/run_backup.sh` e execute:
+Para rodar o backup, logs e alertas:
 ```bash
-chmod +x scripts/run_backup.sh
-./scripts/run_backup.sh
+make backup
+```
+
+Para acompanhar os logs em tempo real:
+```bash
+make logs
 ```
 
 ## 🔒 Segurança
