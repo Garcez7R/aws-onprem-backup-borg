@@ -1,93 +1,125 @@
-# 🛡️ Solução de Backup Híbrido: AWS EC2 (Ubuntu 22.04) ↔ VM Local (Debian 13)
+# 🛡️ Hybrid Backup Solution: Cloud & On-Premise Resiliency
 
-Este repositório apresenta uma implementação completa de backup automatizado, seguro e altamente eficiente. O projeto foi desenhado para resolver o desafio de proteger dados críticos na nuvem (AWS) transferindo-os para uma infraestrutura local (On-Premise), utilizando o poder do **BorgBackup**.
+[![AWS](https://img.shields.io/badge/AWS-Cloud-orange?style=for-the-badge&logo=amazon-aws)](https://aws.amazon.com/)
+[![Security](https://img.shields.io/badge/Security-Data_Protection-blue?style=for-the-badge&logo=linux-foundation)](https://www.linuxfoundation.org/)
+[![BorgBackup](https://img.shields.io/badge/BorgBackup-Deduplication-green?style=for-the-badge&logo=borgbackup)](https://www.borgbackup.org/)
+[![Status](https://img.shields.io/badge/Status-Educational-brightgreen?style=for-the-badge)](https://github.com/Garcez7R/aws-onprem-backup-borg)
 
-## 📖 Visão Geral e Conceitos
+## 📋 Sobre o Projeto
 
-Diferente de scripts de cópia comuns (como rsync), esta solução utiliza o **BorgBackup**, que oferece:
-*   **Deduplicação de Dados**: Apenas blocos únicos são armazenados. Se você tem 10 arquivos iguais, o Borg armazena apenas um. Isso reduz drasticamente o uso de disco e a largura de banda.
-*   **Compressão LZ4**: Os dados são compactados antes do envio, acelerando a transferência.
-*   **Criptografia AES-256**: Seus dados são criptografados na origem. Nem o provedor de nuvem nem ninguém no caminho pode ler seu conteúdo.
-*   **Arquitetura Pull (Puxada)**: Por segurança, a sua VM Local "puxa" os dados da AWS. Isso impede que uma EC2 comprometida tenha permissão de apagar seus backups locais.
+Este projeto apresenta uma implementação completa de **backup híbrido automatizado**, seguro e altamente eficiente. O objetivo é demonstrar como proteger dados críticos em ambientes de nuvem pública, transferindo-os para uma infraestrutura local (**On-Premise**) de forma resiliente.
 
----
+A solução utiliza o **BorgBackup** para garantir que os dados sejam deduplicados, compactados e criptografados antes mesmo de saírem da origem, seguindo as melhores práticas de **soberania de dados** e **segurança cibernética**.
 
-## 🏗️ Estrutura do Projeto
+### Autor e Informações
 
-O projeto está organizado de forma modular para facilitar o estudo e a manutenção:
+| Detalhe | Informação |
+| :-- | :-- |
+| **Autor** | Rafael Garcez |
+| **LinkedIn** | [linkedin.com/in/rgarcez7](https://linkedin.com/in/rgarcez7) |
+| **Projeto** | Backup Híbrido Zero-Touch |
+| **Foco Técnico** | Infraestrutura, Segurança e Automação |
 
-*   📂 `config/`: Contém o arquivo `backup.env`, onde centralizamos todas as variáveis (IPs, Senhas, Caminhos).
-*   📂 `scripts/`: O motor da automação.
-    *   `setup_vm.sh`: Prepara o servidor Debian (Instalação, Usuários, Chaves).
-    *   `setup_ec2.sh`: Prepara o cliente Ubuntu (Instalação, Dados de Teste).
-    *   `run_backup_automated.sh`: Script orquestrador que realiza o backup, limpeza e validação.
-*   📂 `docs/`: Documentação técnica aprofundada.
-    *   `ESTUDO_DE_CASO.md`: Análise teórica e técnica da solução.
-    *   `AWS_SETUP.md`: Passo a passo detalhado na console AWS.
-    *   `DEBIAN_SETUP.md`: Guia de preparação do servidor local.
-    *   `NOTIFICACOES.md`: Como configurar alertas no Discord/Slack.
+## 🎯 Objetivos Técnicos
 
----
+*   **Deduplicação na Fonte:** Redução drástica do tráfego de rede e uso de armazenamento.
+*   **Arquitetura Pull:** Proteção contra ataques de ransomware no cliente em nuvem.
+*   **Criptografia de Ponta a Ponta:** Garantia de confidencialidade com AES-256.
+*   **Automação Zero-Touch:** Orquestração completa via Scripts e Makefile.
+*   **Resiliência Híbrida:** Garantia de disponibilidade dos dados fora do provedor cloud.
 
-## 🚀 Guia de Implementação (Passo a Passo Detalhado)
+## 🏗️ Arquitetura da Solução
 
-### 1. Preparação da VM Local (Debian 13)
-O primeiro passo é preparar o seu "Cofre de Dados".
+O projeto baseia-se em um modelo de **Pull Backup**, onde o servidor local inicia a conexão segura e solicita os dados.
+
+| Componente | Função | Tecnologia |
+| :-- | :-- | :-- |
+| **Cliente Cloud** | Origem dos dados críticos | Ubuntu 22.04 LTS |
+| **Servidor Local** | Repositório seguro e orquestrador | Debian 13 |
+| **Protocolo** | Transporte seguro de dados | SSH (ED25519) |
+| **Motor de Backup** | Deduplicação e Criptografia | BorgBackup |
+
+## 📁 Estrutura do Repositório
+
+```text
+aws-onprem-backup-borg/
+├── README.md               # Visão geral e guia rápido
+├── Makefile                # Interface de automação do projeto
+├── config/
+│   └── backup.env.example  # Modelo de variáveis de ambiente
+├── scripts/
+│   ├── setup_vm.sh         # Configuração do Servidor Local
+│   ├── setup_ec2.sh        # Configuração do Cliente Cloud
+│   └── run_backup.sh       # Script orquestrador de backup
+└── docs/
+    ├── ESTUDO_DE_CASO.md   # Análise teórica aprofundada
+    ├── CLOUD_SETUP.md      # Guia de preparação do cliente
+    ├── LOCAL_SETUP.md      # Guia de preparação do servidor
+    └── NOTIFICACOES.md     # Configuração de alertas Webhook
+```
+
+## 🚀 Guia de Implementação
+
+### 1. Preparação do Servidor Local
 ```bash
 make setup-vm
 ```
-**O que este comando faz?**
-1. Atualiza os repositórios e instala o `borgbackup`.
-2. Cria um usuário de sistema chamado `backup` (sem acesso a shell por segurança).
-3. Cria o diretório `/borg/repo` com permissões restritas.
-4. Gera um par de chaves SSH (ED25519) exclusivo para o backup.
-5. **Ação Necessária**: Copie a chave pública que aparecerá no seu terminal.
+*   Configura o usuário dedicado `backup`.
+*   Gera chaves SSH exclusivas.
+*   Prepara o diretório do repositório.
 
-### 2. Preparação da EC2 (Ubuntu 22.04)
-Agora, vamos preparar a fonte dos dados.
+### 2. Preparação do Cliente Cloud
 ```bash
 make setup-ec2
 ```
-**O que este comando faz?**
-1. Instala o Borg no Ubuntu.
-2. Cria uma pasta `~/borg_test_data` com arquivos binários de teste (Dummies).
-3. **Ação Necessária**: Adicione a chave da VM no arquivo da EC2:
-   ```bash
-   echo "COLE_A_CHAVE_AQUI" >> ~/.ssh/authorized_keys
-   ```
+*   Instala as dependências do Borg.
+*   Gera arquivos de teste (**Dummy Data**) para validação.
 
-### 3. Configuração do Orquestrador (Na VM Local)
-Renomeie o arquivo de exemplo e preencha as informações:
+### 3. Conectividade e Inicialização
+1. Adicione a chave pública da VM no cliente cloud.
+2. Configure o arquivo `config/backup.env`.
+3. Inicialize o repositório:
 ```bash
-cp config/backup.env.example config/backup.env
-nano config/backup.env
-```
-Preencha o `REMOTE_EC2_IP` e defina uma senha forte em `BORG_PASSPHRASE`.
-
-### 4. Inicialização do Repositório
-Antes do primeiro backup, o "cofre" precisa ser inicializado:
-```bash
-sudo -u backup borg init --encryption=repokey-blake2 /borg/repo
+make init-repo
 ```
 
-### 5. Execução e Validação
-Para disparar o processo completo:
+### 4. Execução do Backup
 ```bash
 make backup-now
 ```
-O script irá:
-1. Conectar na EC2 via SSH.
-2. Ler os dados e aplicar deduplicação.
-3. Transferir os blocos novos para a VM.
-4. **Pruning**: Apagar backups muito antigos (mantendo os últimos 7 dias).
-5. **Check**: Verificar se o repositório está saudável.
+
+## 🔐 Tecnologias e Conceitos
+
+### Stack Tecnológica
+*   **BorgBackup:** O estado da arte em backup com deduplicação.
+*   **Linux (Debian/Ubuntu):** Sistemas operacionais robustos para produção.
+*   **Bash Scripting:** Automação de fluxos complexos.
+*   **SSH Tunneling:** Comunicação segura e criptografada.
+
+### Conceitos Aplicados
+*   **Least Privilege:** Usuário de backup sem acesso a shell.
+*   **Pull vs Push:** Inversão de controle para maior segurança.
+*   **Immutable-ish Backups:** Proteção do repositório local.
+*   **Data Integrity:** Verificação constante via hashes (Check).
+
+## 🎓 Competências Demonstradas
+
+*   ✅ Implementação de arquiteturas híbridas de TI.
+*   ✅ Gestão avançada de sistemas Linux.
+*   ✅ Automação de processos de segurança e infraestrutura.
+*   ✅ Configuração de ambientes cloud resilientes.
+*   ✅ Documentação técnica de nível corporativo.
+
+## 📚 Referências e Recursos
+
+*   [BorgBackup Official Documentation](https://www.borgbackup.org/)
+*   [Linux Security Hardening Guide](https://www.cisecurity.org/)
+*   [SSH Best Practices](https://www.ssh.com/academy/ssh/best-practices-security)
+
+## 📞 Contato
+
+*   **Rafael Garcez**
+*   **LinkedIn:** [linkedin.com/in/rgarcez7](https://linkedin.com/in/rgarcez7)
 
 ---
-
-## 🛠️ Comandos do Makefile
-*   `make help`: Lista todos os comandos.
-*   `make logs`: Acompanha o progresso do backup em tempo real.
-*   `make clean-logs`: Limpa o histórico de logs para economizar espaço.
-
----
-*Este repositório é um material de estudo sobre infraestrutura resiliente e automação de segurança.*
+⭐ Se este projeto foi útil para seus estudos de infraestrutura, considere deixar uma estrela no repositório!
