@@ -1,36 +1,35 @@
 # ==========================================
-# Makefile - Automação Zero Touch
-# Projeto: Backup Híbrido AWS -> On-Premise
+# Makefile - Automação Otimizada (Ubuntu 22.04)
 # ==========================================
 
-.PHONY: help install setup test-data backup logs clean
+.PHONY: help install-client setup-server backup logs clean init-repo
 
 help:
 	@echo "Comandos disponíveis:"
-	@echo "  make install  - Instala o BorgBackup no sistema"
-	@echo "  make setup    - Configura o servidor de destino (Debian)"
-	@echo "  make test-data - Cria arquivos dummy para teste de backup"
-	@echo "  make backup   - Executa o processo de backup completo"
-	@echo "  make logs     - Visualiza os logs de backup em tempo real"
-	@echo "  make clean    - Limpa arquivos temporários e logs antigos"
+	@echo "  make install-client  - Configura a EC2 (Ubuntu 22.04)"
+	@echo "  make setup-server    - Configura a VM de Destino"
+	@echo "  make init-repo       - Inicializa o repositório Borg"
+	@echo "  make backup          - Executa o backup com validação"
+	@echo "  make logs            - Visualiza os logs"
+	@echo "  make restore         - Restaura arquivos do backup"
+	@echo "  make git-commit      - Prepara o commit das alterações"
+	@echo "  make clean           - Limpa logs antigos"
 
-install:
-	@echo "Iniciando instalação..."
-	@chmod +x scripts/install_borg.sh
-	@./scripts/install_borg.sh
+install-client:
+	@chmod +x scripts/setup_client.sh
+	@./scripts/setup_client.sh
 
-setup:
-	@echo "Configurando servidor..."
+setup-server:
 	@chmod +x scripts/setup_server.sh
 	@./scripts/setup_server.sh
 
-test-data:
-	@echo "Criando dados de teste..."
-	@chmod +x scripts/create_dummies.sh
-	@./scripts/create_dummies.sh
+init-repo:
+	@read -p "Digite o IP da VM: " IP; \
+	read -p "Digite o caminho do repo [/borg/repo]: " REPO; \
+	REPO=$${REPO:-/borg/repo}; \
+	borg init --encryption=repokey-blake2 backup@$$IP:$$REPO
 
 backup:
-	@echo "Iniciando backup..."
 	@chmod +x scripts/run_backup.sh
 	@sudo touch /var/log/borg_backup.log && sudo chmod 666 /var/log/borg_backup.log
 	@./scripts/run_backup.sh
@@ -38,7 +37,14 @@ backup:
 logs:
 	@tail -f /var/log/borg_backup.log
 
+restore:
+	@chmod +x scripts/restore_backup.sh
+	@./scripts/restore_backup.sh
+
+git-commit:
+	@chmod +x scripts/push_to_git.sh
+	@./scripts/push_to_git.sh
+
 clean:
-	@echo "Limpando logs..."
 	@sudo rm -f /var/log/borg_backup.log
-	@echo "Limpeza concluída."
+	@echo "Logs limpos."

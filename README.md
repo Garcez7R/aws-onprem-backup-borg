@@ -1,66 +1,39 @@
-# Projeto: Backup Híbrido AWS → VM Debian 13 (BorgBackup)
+# Backup Híbrido AWS (Ubuntu 22.04) → VM Local (BorgBackup)
 
-Este projeto implementa uma solução de backup seguro e eficiente utilizando **BorgBackup**, transferindo dados de uma instância EC2 na AWS para uma VM local (On-Premises ou Cloud externa) rodando Debian 13.
+Este projeto foi otimizado para ser a solução mais rápida e funcional de backup entre AWS EC2 (Ubuntu 22.04) e um servidor de destino.
 
-## 🏗️ Arquitetura
+## 🚀 Instalação Rápida
 
-- **Origem (Cliente):** AWS EC2 (Amazon Linux/Ubuntu).
-- **Destino (Servidor):** VM Debian 13.
-- **Protocolo:** SSH com restrição de comandos para máxima segurança.
-- **Ferramenta:** BorgBackup (Deduplicação, Compressão e Criptografia).
-
-## 📂 Estrutura do Repositório
-
-- `scripts/`: Scripts de automação para instalação e execução.
-- `docs/`: Documentação detalhada (AWS e Debian) e evidências.
-- `config/`: Exemplos de arquivos de configuração.
-
-## 🚀 Como Usar (Zero Touch com Makefile)
-
-Este projeto utiliza um `Makefile` para automatizar todas as etapas.
-
-### 1. Preparação do Servidor (VM Debian 13)
-Para instalar e preparar o Debian 13 do zero, siga o [Guia de Configuração Debian](docs/DEBIAN_SETUP.md).
-
-Após a instalação do SO, configure o ambiente com:
+### 1. No Cliente (AWS EC2 Ubuntu 22.04)
+Execute o comando abaixo para instalar o Borg e gerar sua chave SSH:
 ```bash
-make setup
+make install-client
 ```
+*Copie a chave pública gerada ao final do script.*
 
-### 2. Preparação do Cliente (AWS EC2)
-Para configurar a instância na AWS do zero, siga o [Guia de Configuração AWS](docs/AWS_SETUP.md).
-
-Após configurar a instância, instale o Borg com:
+### 2. No Servidor de Destino (VM Local)
+Prepare o ambiente para receber os backups:
 ```bash
-make install
+make setup-server
 ```
+*Cole a chave do cliente em `/home/backup/.ssh/authorized_keys` com o prefixo `command="borg serve",restrict`.*
 
-### 3. Configuração de Acesso SSH
-Gere uma chave SSH na EC2 e adicione a chave pública no servidor de destino (`/home/backup/.ssh/authorized_keys`) com a restrição:
-```text
-command="borg serve",restrict ssh-ed25519 AAAA...
-```
-
-### 4. Execução do Backup
-Para rodar o backup, logs e alertas:
+### 3. Inicializar o Repositório (Na EC2)
 ```bash
-make backup
+make init-repo
 ```
 
-Para acompanhar os logs em tempo real:
-```bash
-make logs
-```
+## 🛠️ Uso Diário
 
-## 🔒 Segurança
-- **Criptografia:** Repositório inicializado com `repokey-blake2`.
-- **SSH Restrito:** O usuário de backup não possui acesso ao shell, apenas ao binário do Borg.
-- **Deduplicação:** Apenas blocos de dados alterados são transferidos, economizando largura de banda e espaço.
+- **Executar Backup:** `make backup` (Inclui verificação de integridade e limpeza automática).
+- **Ver Logs:** `make logs`.
+- **Configurações:** Edite o arquivo `config/backup.env.example` (renomeie para `.env`) para definir IPs, senhas e Webhooks.
 
-## 🛠️ Comandos Úteis
-- **Listar backups:** `borg list usuario@ip:/caminho/repo`
-- **Restaurar arquivo:** `borg extract usuario@ip:/caminho/repo::nome-backup caminho/do/arquivo`
-- **Verificar integridade:** `borg check usuario@ip:/caminho/repo`
+## 🔒 Diferenciais desta Versão
+- **Foco em Ubuntu 22.04:** Maior compatibilidade e facilidade de pacotes.
+- **Validação Automática:** Roda `borg check` após cada backup.
+- **Limpeza (Pruning):** Mantém backups dos últimos 7 dias e 4 semanas automaticamente.
+- **Segurança Máxima:** SSH restrito apenas para o serviço do Borg.
 
 ---
-*Projeto gerado para fins de portfólio e laboratório técnico.*
+*Ajustado para máxima performance e simplicidade.*
