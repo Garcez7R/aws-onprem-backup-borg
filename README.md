@@ -41,6 +41,14 @@ O projeto baseia-se em um modelo de **Pull Backup**, onde o servidor local inici
 | **Protocolo** | Transporte seguro de dados | SSH (ED25519) |
 | **Motor de Backup** | Deduplicação e Criptografia | BorgBackup |
 
+## 🚀 Navegação Rápida
+
+*   **[Documentação Técnica](docs/):** Acesso a todos os guias detalhados.
+*   **[Estudo de Caso](docs/ESTUDO_DE_CASO.md):** Análise aprofundada da solução.
+*   **[Configuração Cloud](docs/CLOUD_SETUP.md):** Guia para o ambiente em nuvem.
+*   **[Configuração Local](docs/LOCAL_SETUP.md):** Guia para o servidor local.
+*   **[Notificações](docs/NOTIFICACOES.md):** Guia de alertas via Webhook.
+
 ## 📁 Estrutura do Repositório
 
 ```text
@@ -54,10 +62,10 @@ aws-onprem-backup-borg/
 │   ├── setup_ec2.sh        # Configuração do Cliente Cloud
 │   └── run_backup.sh       # Script orquestrador de backup
 └── docs/
-    ├── ESTUDO_DE_CASO.md   # Análise teórica aprofundada
-    ├── CLOUD_SETUP.md      # Guia de preparação do cliente
-    ├── LOCAL_SETUP.md      # Guia de preparação do servidor
-    └── NOTIFICACOES.md     # Configuração de alertas Webhook
+    ├── [ESTUDO_DE_CASO.md](docs/ESTUDO_DE_CASO.md)   # Análise teórica aprofundada
+    ├── [CLOUD_SETUP.md](docs/CLOUD_SETUP.md)         # Guia de preparação do cliente
+    ├── [LOCAL_SETUP.md](docs/LOCAL_SETUP.md)         # Guia de preparação do servidor
+    └── [NOTIFICACOES.md](docs/NOTIFICACOES.md)       # Configuração de alertas Webhook
 ```
 
 ## 🚀 Guia de Implementação
