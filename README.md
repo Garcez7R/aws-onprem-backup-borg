@@ -1,39 +1,69 @@
-# Backup Híbrido AWS (Ubuntu 22.04) → VM Local (BorgBackup)
+# Projeto: Backup Híbrido AWS (Ubuntu 22.04) → VM Local (BorgBackup)
 
-Este projeto foi otimizado para ser a solução mais rápida e funcional de backup entre AWS EC2 (Ubuntu 22.04) e um servidor de destino.
+Este projeto implementa uma solução de backup seguro, eficiente e automatizado utilizando **BorgBackup**, transferindo dados de uma instância EC2 na AWS (otimizado para Ubuntu 22.04) para uma VM local (On-Premises ou Cloud externa) via SSH restrito.
 
-## 🚀 Instalação Rápida
+## 🏗️ Arquitetura Otimizada
 
-### 1. No Cliente (AWS EC2 Ubuntu 22.04)
-Execute o comando abaixo para instalar o Borg e gerar sua chave SSH:
+- **Origem (Cliente):** AWS EC2 rodando **Ubuntu 22.04 LTS**.
+- **Destino (Servidor):** VM Local rodando Debian 13 ou Ubuntu 22.04.
+- **Protocolo:** SSH com restrição de comandos (`borg serve`) para máxima segurança.
+- **Ferramenta:** BorgBackup (Deduplicação, Compressão LZ4, Criptografia e Validação Automática).
+
+## 📂 Estrutura do Repositório
+
+- `scripts/`: Scripts de automação (Instalação, Setup, Backup, Restauração e Dummies).
+- `docs/`: Documentação detalhada, guias de configuração e evidências.
+- `config/`: Arquivos de configuração e variáveis de ambiente (`backup.env.example`).
+- `Makefile`: O "Coração" do projeto. Automatiza todas as etapas com comandos simples.
+
+## 🚀 Guia de Configuração (Passo a Passo)
+
+### 1. Preparação do Cliente (AWS EC2 Ubuntu 22.04)
+Na sua instância EC2, instale o Borg e gere as chaves necessárias:
 ```bash
 make install-client
 ```
-*Copie a chave pública gerada ao final do script.*
+*Este comando instalará o Borg e gerará uma chave SSH ED25519. Copie a chave pública exibida no final.*
 
-### 2. No Servidor de Destino (VM Local)
-Prepare o ambiente para receber os backups:
+### 2. Preparação do Servidor (VM Local)
+No servidor que receberá os dados, configure o usuário e diretórios:
 ```bash
 make setup-server
 ```
-*Cole a chave do cliente em `/home/backup/.ssh/authorized_keys` com o prefixo `command="borg serve",restrict`.*
-
-### 3. Inicializar o Repositório (Na EC2)
-```bash
-make init-repo
+**Configuração de Segurança SSH:**
+Edite o arquivo `/home/backup/.ssh/authorized_keys` no servidor e adicione a chave do cliente com a restrição:
+```text
+command="borg serve",restrict ssh-ed25519 AAAA... (sua_chave_aqui)
 ```
 
-## 🛠️ Uso Diário
+### 3. Inicialização e Teste de Dados
+De volta à EC2, crie arquivos de teste para validar a deduplicação e inicialize o repositório:
+```bash
+make test-data  # Cria ~/borg_test_data com arquivos de vários tamanhos
+make init-repo  # Inicializa o repositório criptografado (digite o IP da VM quando solicitado)
+```
 
-- **Executar Backup:** `make backup` (Inclui verificação de integridade e limpeza automática).
-- **Ver Logs:** `make logs`.
-- **Configurações:** Edite o arquivo `config/backup.env.example` (renomeie para `.env`) para definir IPs, senhas e Webhooks.
+### 4. Execução e Monitoramento
+Para rodar o backup completo (incluindo validação de integridade e limpeza):
+```bash
+make backup
+```
+Para acompanhar os logs em tempo real:
+```bash
+make logs
+```
 
-## 🔒 Diferenciais desta Versão
-- **Foco em Ubuntu 22.04:** Maior compatibilidade e facilidade de pacotes.
-- **Validação Automática:** Roda `borg check` após cada backup.
-- **Limpeza (Pruning):** Mantém backups dos últimos 7 dias e 4 semanas automaticamente.
-- **Segurança Máxima:** SSH restrito apenas para o serviço do Borg.
+## 🔒 Segurança e Resiliência
+- **Criptografia:** Repositório inicializado com `repokey-blake2`.
+- **SSH Restrito:** O usuário de backup não possui acesso ao shell, apenas ao binário do Borg.
+- **Validação Automática:** O script de backup agora executa `borg check` após cada envio.
+- **Retenção (Pruning):** Mantém automaticamente os últimos 7 backups diários e 4 semanais.
+
+## 🛠️ Comandos Úteis e Restauração
+
+- **Restaurar Arquivos:** `make restore` (Script interativo para escolher o backup e o caminho).
+- **Limpar Logs:** `make clean`.
+- **Commitar Alterações:** `make git-commit` (Prepara o projeto para subir ao GitHub).
 
 ---
-*Ajustado para máxima performance e simplicidade.*
+*Este projeto foi ajustado para garantir a instalação mais funcional e rápida possível em ambientes Ubuntu 22.04.*
