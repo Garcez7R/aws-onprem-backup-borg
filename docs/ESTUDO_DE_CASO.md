@@ -1,24 +1,37 @@
-# Estudo de Caso: Backup Híbrido AWS → On-Premise (Zero Touch)
+# 📑 Estudo de Caso Profissional: Backup Híbrido AWS → On-Premise
 
-## 1. Visão Geral do Projeto
-Este projeto simula um cenário real onde dados críticos residentes na nuvem (AWS EC2) precisam ser protegidos em uma infraestrutura local (On-Premise) de forma totalmente automatizada e segura.
+## 1. Sumário Executivo
+Este documento apresenta a implementação de uma solução de Disaster Recovery (DR) e Backup Híbrido, conectando a nuvem pública (AWS) a uma infraestrutura local. O foco principal é a **segurança dos dados**, **automação Zero Touch** e **eficiência de custos**.
 
-## 2. O Desafio
-Backups tradicionais muitas vezes falham por:
-1.  **Intervenção Humana**: Esquecimento ou erros manuais.
-2.  **Custo de Saída**: Transferência de dados ineficiente.
-3.  **Segurança**: Exposição de chaves de escrita na nuvem.
+## 2. Análise do Cenário
+Muitas empresas enfrentam altos custos de *data egress* ao realizar backups da nuvem. Além disso, manter backups apenas na nuvem viola a regra de ouro do backup (3-2-1).
 
-## 3. A Solução (Arquitetura Pull)
-Invertemos o modelo tradicional. A **VM Local** (mais segura) solicita os dados da **EC2**.
-*   **Orquestrador**: Debian 13 (Estável e seguro).
-*   **Fonte**: Ubuntu 22.04 (Moderno e compatível).
-*   **Motor**: BorgBackup (Deduplicação na fonte).
+### 2.1 Requisitos do Projeto
+*   **Imutabilidade Relativa**: Proteção contra deleção acidental na nuvem.
+*   **Segurança**: Criptografia de ponta a ponta.
+*   **Autonomia**: Funcionamento sem intervenção manual.
 
-## 4. Diferenciais Técnicos
-- **Zero Touch**: Scripts de setup automatizam a criação de usuários, chaves e dados de teste.
-- **Eficiência**: Graças à deduplicação, apenas blocos alterados saem da AWS, reduzindo o custo de *data egress*.
-- **Integridade**: Validação automática (`borg check`) após cada operação.
+## 3. Decisões de Arquitetura
 
-## 5. Resultados de Laboratório
-Em testes realizados, o backup inicial de 100MB foi reduzido para apenas alguns KBs em backups subsequentes onde apenas pequenos metadados foram alterados, demonstrando a eficácia do Borg.
+### 3.1 Por que BorgBackup?
+O Borg foi escolhido por sua superioridade em:
+*   **Deduplicação no Cliente**: Os dados são comparados antes de sair da EC2. Se um bloco já existe na VM Local, ele não é enviado. Isso economiza até 90% de largura de banda.
+*   **Criptografia Autenticada**: Garante que ninguém, nem mesmo o provedor de nuvem, veja os dados.
+
+### 3.2 Arquitetura de "Pull" (Puxada)
+Ao contrário do modelo "Push" (onde a EC2 envia), o modelo "Pull" (onde a VM Local solicita) aumenta a segurança:
+*   A EC2 não precisa conhecer a senha do repositório local.
+*   O servidor local não fica exposto à internet para receber conexões.
+
+## 4. Implementação Técnica
+A solução utiliza **Ubuntu 22.04** na AWS pela sua estabilidade e **Debian 13** localmente pela sua robustez como servidor.
+
+### 4.1 Fluxo de Dados
+1.  **Trigger**: Crontab na VM Local dispara o script.
+2.  **Conexão**: SSH via túnel criptografado.
+3.  **Processamento**: Borg indexa os arquivos na EC2.
+4.  **Transferência**: Apenas blocos novos são enviados via LZ4.
+5.  **Finalização**: Validação de integridade e limpeza de snapshots antigos.
+
+## 5. Conclusão
+A implementação resultou em um sistema de backup resiliente, que custa frações de soluções proprietárias e oferece controle total sobre a soberania dos dados.

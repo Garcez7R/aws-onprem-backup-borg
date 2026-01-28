@@ -13,6 +13,17 @@ source "$CONFIG_FILE"
 LOG_FILE="/var/log/borg_backup.log"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
+send_notification() {
+    local status=$1
+    local message=$2
+    local color=$3
+    if [ -n "$WEBHOOK_URL" ]; then
+        curl -H "Content-Type: application/json" -X POST \
+             -d "{\"embeds\": [{\"title\": \"Backup $status - $(hostname)\", \"description\": \"$message\", \"color\": $color}]}" \
+             "$WEBHOOK_URL"
+    fi
+}
+
 echo "[$TIMESTAMP] 🚀 Iniciando Pull Backup da EC2 ($REMOTE_EC2_IP)..." | sudo tee -a $LOG_FILE
 
 # Comando Borg Create (via SSH)
@@ -24,14 +35,19 @@ if sudo -u backup borg create --stats --compression lz4 \
     "ssh://$REMOTE_EC2_USER@$REMOTE_EC2_IP/./" \
     --paths-from-text <(echo "$TARGET_DIRECTORIES" | tr ' ' '\n') >> $LOG_FILE 2>&1; then
     
-    echo "[$TIMESTAMP] ✅ Backup concluído com sucesso: $ARCHIVE" | sudo tee -a $LOG_FILE
+    MSG="✅ Backup concluído com sucesso: $ARCHIVE"
+    echo "[$TIMESTAMP] $MSG" | sudo tee -a $LOG_FILE
     
     # Pruning (Limpeza)
     sudo -u backup borg prune -v --list --keep-daily=7 --keep-weekly=4 "$REPO_PATH" >> $LOG_FILE 2>&1
     
     # Check (Validação)
     sudo -u backup borg check "$REPO_PATH" >> $LOG_FILE 2>&1
+    
+    send_notification "SUCESSO" "$MSG" 65280
 else
-    echo "[$TIMESTAMP] ❌ FALHA no backup. Verifique os logs." | sudo tee -a $LOG_FILE
+    MSG="❌ FALHA no backup de $(hostname). Verifique os logs em $LOG_FILE"
+    echo "[$TIMESTAMP] $MSG" | sudo tee -a $LOG_FILE
+    send_notification "ERRO" "$MSG" 16711680
     exit 1
 fi
