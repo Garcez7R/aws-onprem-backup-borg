@@ -1,50 +1,32 @@
 # ==========================================
-# Makefile - Automação Otimizada (Ubuntu 22.04)
+# Makefile - Projeto Backup Zero Touch
 # ==========================================
 
-.PHONY: help install-client setup-server backup logs clean init-repo
+.PHONY: help setup-vm setup-ec2 backup-now logs clean-logs
 
 help:
 	@echo "Comandos disponíveis:"
-	@echo "  make install-client  - Configura a EC2 (Ubuntu 22.04)"
-	@echo "  make setup-server    - Configura a VM de Destino"
-	@echo "  make init-repo       - Inicializa o repositório Borg"
-	@echo "  make backup          - Executa o backup com validação"
-	@echo "  make logs            - Visualiza os logs"
-	@echo "  make restore         - Restaura arquivos do backup"
-	@echo "  make git-commit      - Prepara o commit das alterações"
-	@echo "  make clean           - Limpa logs antigos"
+	@echo "  make setup-vm    - Executa na VM Local (Debian 13)"
+	@echo "  make setup-ec2   - Executa na EC2 (Ubuntu 22.04)"
+	@echo "  make backup-now  - Dispara o backup manualmente da VM"
+	@echo "  make logs        - Visualiza os logs de backup"
 
-install-client:
-	@chmod +x scripts/setup_client.sh
-	@./scripts/setup_client.sh
+setup-vm:
+	@chmod +x scripts/setup_vm.sh
+	@./scripts/setup_vm.sh
 
-setup-server:
-	@chmod +x scripts/setup_server.sh
-	@./scripts/setup_server.sh
+setup-ec2:
+	@chmod +x scripts/setup_ec2.sh
+	@./scripts/setup_ec2.sh
 
-init-repo:
-	@read -p "Digite o IP da VM: " IP; \
-	read -p "Digite o caminho do repo [/borg/repo]: " REPO; \
-	REPO=$${REPO:-/borg/repo}; \
-	borg init --encryption=repokey-blake2 backup@$$IP:$$REPO
-
-backup:
-	@chmod +x scripts/run_backup.sh
+backup-now:
+	@chmod +x scripts/run_backup_automated.sh
 	@sudo touch /var/log/borg_backup.log && sudo chmod 666 /var/log/borg_backup.log
-	@./scripts/run_backup.sh
+	@./scripts/run_backup_automated.sh
 
 logs:
 	@tail -f /var/log/borg_backup.log
 
-restore:
-	@chmod +x scripts/restore_backup.sh
-	@./scripts/restore_backup.sh
-
-git-commit:
-	@chmod +x scripts/push_to_git.sh
-	@./scripts/push_to_git.sh
-
-clean:
+clean-logs:
 	@sudo rm -f /var/log/borg_backup.log
-	@echo "Logs limpos."
+	@echo "Logs removidos."
