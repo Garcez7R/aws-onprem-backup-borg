@@ -1,26 +1,40 @@
-# ☁️ Guia de Configuração AWS EC2 (Ubuntu 22.04)
+# ☁️ Guia de Configuração Detalhado: AWS EC2
 
-Este guia detalha o provisionamento da instância de origem para o sistema de backup.
+Este documento fornece as instruções minuciosas para preparar a instância de origem na Amazon Web Services (AWS).
 
-## 1. Escolha da AMI
-Para garantir a máxima compatibilidade e facilidade de instalação do BorgBackup, selecionamos a AMI:
-*   **SO:** Ubuntu Server 22.04 LTS (HVM), SSD Volume Type.
-*   **Arquitetura:** 64-bit (x86).
+## 1. Provisionamento da Instância
+Para este laboratório/estudo de caso, utilizamos o Ubuntu 22.04 LTS devido à sua vasta documentação e estabilidade com ferramentas de backup modernas.
 
-## 2. Instância e Recursos
-*   **Tipo:** t3.micro (suficiente para laboratório) ou superior para produção.
-*   **Armazenamento:** Mínimo 8GB (Root) + Volume adicional se houver dados específicos para backup.
+### 1.1 Detalhes da AMI
+*   **Nome:** Ubuntu Server 22.04 LTS (Jammy Jellyfish).
+*   **Arquitetura:** x86_64.
+*   **Virtualização:** HVM.
 
-## 3. Security Groups (Firewall)
-Para o funcionamento do backup via Pull (VM -> EC2), a EC2 precisa permitir:
-| Tipo | Protocolo | Porta | Origem | Descrição |
-| :--- | :--- | :--- | :--- | :--- |
-| SSH | TCP | 22 | IP_DA_SUA_VM | Acesso para o Orquestrador de Backup |
+### 1.2 Tipo de Instância
+*   **Recomendado:** t3.micro (Grátis no Free Tier).
+*   **Nota Técnica:** O BorgBackup utiliza CPU para compressão e deduplicação. Em ambientes de produção com TBs de dados, considere instâncias da família `compute-optimized` (C6g/C7g).
 
-## 4. Configuração de Acesso
-1.  Gere ou importe sua Key Pair (.pem).
-2.  Acesse a instância: `ssh -i sua-chave.pem ubuntu@ip-da-ec2`.
-3.  Execute o comando de setup do projeto: `make setup-ec2`.
+## 2. Configuração de Rede e Segurança (Security Groups)
+A segurança é baseada no princípio do "Menor Privilégio". Como estamos usando uma arquitetura de **Pull Backup**, a EC2 precisa apenas aceitar conexões SSH.
 
-## 5. IAM (Opcional)
-Se desejar integrar com S3 futuramente, anexe uma Role com a política `AmazonS3FullAccess`.
+### 2.1 Regras de Entrada (Inbound)
+| Protocolo | Porta | Origem | Justificativa |
+| :--- | :--- | :--- | :--- |
+| TCP | 22 | IP Fixo da sua VM Local | Permite que o Orquestrador inicie a sessão de backup. |
+
+## 3. Armazenamento (EBS)
+*   **Volume Root:** 8GB (GP3 recomendado pela performance de IOPS).
+*   **Volumes de Dados:** Se você tiver volumes adicionais montados (ex: `/data`), certifique-se de incluí-los na variável `TARGET_DIRECTORIES` no arquivo `backup.env`.
+
+## 4. Instalação e Preparação Automática
+Após acessar sua instância via SSH, o comando `make setup-ec2` realiza as seguintes ações:
+1.  **Atualização de Índices**: `apt update`.
+2.  **Instalação do Borg**: Instala o binário necessário para que a VM local possa "conversar" com a EC2.
+3.  **Geração de Dados de Teste**: Cria a pasta `~/borg_test_data`. Este passo é crucial para o estudo de caso, pois permite observar a deduplicação funcionando na prática:
+    *   Arquivos de 2MB, 4MB, 6MB, etc., são gerados aleatoriamente para simular dados reais.
+
+## 5. Autorização SSH (Ponto Crítico)
+Para que a automação "Zero Touch" funcione, a chave pública gerada na VM Local deve ser inserida no arquivo:
+`~/.ssh/authorized_keys`
+
+**Dica Pro:** Para maior segurança, você pode restringir essa chave para executar apenas o Borg, adicionando o prefixo `command="borg serve",restrict` antes da chave.
