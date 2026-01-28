@@ -1,0 +1,25 @@
+graph TD
+    subgraph "Ambiente Cloud (Origem)"
+        A[Cliente Ubuntu 22.04] --> B[Dados Críticos /etc, /var/www]
+        A --> C[Borg Serve]
+    end
+
+    subgraph "Conexão Segura"
+        D((Túnel SSH / ED25519))
+    end
+
+    subgraph "Ambiente On-Premise (Destino)"
+        E[Servidor Debian 13] --> F[Orquestrador / Makefile]
+        F --> G[(Repositório Borg)]
+        G --> H[Deduplicação / Criptografia]
+    end
+
+    F -- "1. Inicia Conexão (Pull)" --> D
+    D -- "2. Autentica e Solicita Dados" --> C
+    C -- "3. Envia Blocos de Dados" --> D
+    D -- "4. Armazena e Valida" --> G
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style E fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#dfd,stroke:#333,stroke-dasharray: 5 5
+    style G fill:#f96,stroke:#333,stroke-width:4px

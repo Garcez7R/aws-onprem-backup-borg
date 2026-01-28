@@ -30,6 +30,8 @@ A solução utiliza o **BorgBackup** para garantir que os dados sejam deduplicad
 
 ## 🏗️ Arquitetura da Solução
 
+![Arquitetura do Projeto](docs/architecture.png)
+
 O projeto baseia-se em um modelo de **Pull Backup**, onde o servidor local inicia a conexão segura e solicita os dados.
 
 | Componente | Função | Tecnologia |
