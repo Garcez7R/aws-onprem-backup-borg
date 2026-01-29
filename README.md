@@ -68,35 +68,96 @@ aws-onprem-backup-borg/
     └── [NOTIFICACOES.md](docs/NOTIFICACOES.md)       # Configuração de alertas Webhook
 ```
 
-## 🚀 Guia de Implementação
+## ⚙️ Guia de Implementação Passo a Passo (End-to-End)
 
-### 1. Preparação do Servidor Local
-```bash
-make setup-vm
-```
-*   Configura o usuário dedicado `backup`.
-*   Gera chaves SSH exclusivas.
-*   Prepara o diretório do repositório.
+Este guia detalha todos os procedimentos para replicar a solução, desde o zero até o teste final.
 
-### 2. Preparação do Cliente Cloud
-```bash
-make setup-ec2
-```
-*   Instala as dependências do Borg.
-*   Gera arquivos de teste (**Dummy Data**) para validação.
+### Pré-requisitos
 
-### 3. Conectividade e Inicialização
-1. Adicione a chave pública da VM no cliente cloud.
-2. Configure o arquivo `config/backup.env`.
-3. Inicialize o repositório:
-```bash
-make init-repo
-```
+1.  **Servidor Local (VM):** Uma máquina virtual (Debian 13 ou similar) com acesso à internet.
+2.  **Cliente Cloud (EC2):** Uma instância em nuvem (Ubuntu 22.04 ou similar) com dados a serem copiados.
+3.  **Acesso SSH:** Você deve ter acesso SSH a ambas as máquinas.
 
-### 4. Execução do Backup
-```bash
-make backup-now
-```
+---
+
+### Passo 0: Clonagem do Repositório
+
+**Onde executar:** Em **ambas** as máquinas (VM Local e Cliente Cloud).
+
+1.  **Instale o Git (se necessário):**
+    ```bash
+    sudo apt update && sudo apt install -y git
+    ```
+2.  **Clone o Projeto:**
+    ```bash
+    git clone https://github.com/Garcez7R/aws-onprem-backup-borg.git
+    cd aws-onprem-backup-borg
+    ```
+    *   **Validação:** Você deve estar dentro da pasta `aws-onprem-backup-borg` nas duas máquinas.
+
+---
+
+### Passo 1: Preparação do Servidor Local (VM)
+
+**Onde executar:** Dentro da pasta `aws-onprem-backup-borg` no seu Servidor Local (Debian).
+
+1.  **Execute o Setup Automatizado:** Este comando instala o BorgBackup, cria o usuário `backup` e gera a chave SSH que será usada para a conexão segura.
+    ```bash
+    make setup-vm
+    ```
+2.  **Ação Crítica:** O script irá exibir a **CHAVE PÚBLICA** no final. **COPIE ESSA CHAVE** e guarde-a, pois ela será usada no Passo 2.
+
+---
+
+### Passo 2: Preparação do Cliente Cloud (EC2)
+
+**Onde executar:** No seu Cliente Cloud (Ubuntu).
+
+1.  **Execute o Setup Automatizado:** Este comando instala o BorgBackup no cliente e cria arquivos de teste (Dummy Data) para simular um backup real.
+    ```bash
+    make setup-ec2
+    ```
+2.  **Autorização SSH (Ação Manual):** Adicione a chave pública que você copiou no Passo 1 ao arquivo de chaves autorizadas do seu usuário na EC2.
+    ```bash
+    echo "COLE_A_CHAVE_PÚBLICA_AQUI" >> ~/.ssh/authorized_keys
+    ```
+    *   **Verificação:** Tente fazer um SSH da VM para a EC2 como o usuário `backup`. Se a conexão for feita sem pedir senha, a chave está correta.
+
+---
+
+### Passo 3: Configuração do Orquestrador (VM)
+
+**Onde executar:** No seu Servidor Local (Debian).
+
+1.  **Configure as Variáveis:** Copie o arquivo de exemplo e edite-o para preencher as informações de conexão e segurança.
+    ```bash
+    cp config/backup.env.example config/backup.env
+    nano config/backup.env
+    ```
+    *   Preencha `REMOTE_EC2_IP` com o IP público da sua EC2.
+    *   Defina uma senha forte em `BORG_PASSPHRASE` (Senha de criptografia do repositório).
+2.  **Inicialize o Repositório:** Este comando cria o repositório Borg e o protege com a senha de criptografia. **Execute-o apenas uma vez.**
+    ```bash
+    make init-repo
+    ```
+
+---
+
+### Passo 4: Execução e Validação do Backup
+
+**Onde executar:** No seu Servidor Local (Debian).
+
+1.  **Dispare o Backup:** Este comando executa o script orquestrador, que faz o Pull dos dados, deduplica, criptografa, limpa backups antigos (`prune`) e verifica a integridade (`check`).
+    ```bash
+    make backup-now
+    ```
+2.  **Monitore em Tempo Real:**
+    ```bash
+    make logs
+    ```
+    *   **Validação:** O log deve mostrar a mensagem `✅ Backup concluído com sucesso`.
+
+---
 
 ## 🔐 Tecnologias e Conceitos
 
